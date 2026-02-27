@@ -12,8 +12,7 @@ pipeline {
     stage('Backend: Tests') {
       steps {
         // Utilisation de $(pwd) pour garantir le chemin absolu sur l'hôte [cite: 42]
-        sh 'docker run --rm -v $(pwd)/backend:/src -w /src python:3.12-slim sh -c "pip install --no-cache-dir -r requirements.txt && pytest -q"'
-      }
+sh "docker run --rm -v ${WORKSPACE}/backend:/src -w /src python:3.12-slim sh -c 'pip install --no-cache-dir -r requirements.txt && pytest -q'"      }
     }
 
     stage('Frontend: Lint') {
