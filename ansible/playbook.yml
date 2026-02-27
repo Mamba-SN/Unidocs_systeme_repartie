@@ -1,0 +1,45 @@
+---
+- name: Déploiement local avec Docker Desktop et Minikube
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    user_home: "{{ lookup('env','HOME') }}"
+    docker_sock: "{{ user_home }}/.docker/desktop/docker.sock"
+    project_root: "{{ user_home }}/Documents/MASTER1/System_Repartie/Projet_systeme_reparti"
+    jenkins_home: "{{ user_home }}/jenkins_home"
+
+  tasks:
+    - name: Créer le dossier Jenkins en local
+      file:
+        path: "{{ jenkins_home }}"
+        state: directory
+        mode: '0777'
+
+    - name: Lancer le conteneur Jenkins
+      shell: |
+        if [ -z "$(docker ps -a -q -f name=jenkins)" ]; then
+          docker run -d --name jenkins --restart unless-stopped \
+            -p 8081:8080 -p 50000:50000 \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "{{ jenkins_home }}:/var/jenkins_home" \
+            -v "{{ user_home }}/.kube/config:/root/.kube/config" \
+            -v "{{ project_root }}:/workspace" \
+            -u root \
+            jenkins/jenkins:lts
+        else
+          docker start jenkins || true
+        fi
+      args:
+        executable: /bin/bash
+
+    - name: Déployer Namespace et Postgres sur Kubernetes
+      command: kubectl apply -f {{ project_root }}/k8s/namespace.yaml -f {{ project_root }}/k8s/postgres/
+
+    - name: Attendre que Postgres s'initialise
+      pause:
+        seconds: 10
+
+    - name: Déployer Backend et Frontend sur Kubernetes
+      command: kubectl apply -f {{ project_root }}/k8s/backend/ -f {{ project_root }}/k8s/frontend/
