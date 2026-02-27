@@ -21,10 +21,11 @@ pipeline {
 
     stage('Frontend: Lint') {
       steps {
-        // Construction d'une image temporaire pour le Linting
         sh '''
-        docker build -t frontend-lint ./frontend
-        docker run --rm frontend-lint sh -c "npm install && npm run lint"
+        # On s'arrête à l'étape "build" du Dockerfile qui contient Node.js
+        docker build --target build -t frontend-test ./frontend
+        # On lance le lint directement dans cette image
+        docker run --rm frontend-test npm run lint
         '''
       }
     }
