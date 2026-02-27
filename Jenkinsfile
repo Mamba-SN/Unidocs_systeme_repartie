@@ -21,8 +21,11 @@ pipeline {
 
     stage('Frontend: Lint') {
       steps {
-        // Vérification de la qualité du code React [cite: 42]
-        sh 'docker run --rm -v $(pwd)/frontend:/src -w /src node:18-alpine sh -c "npm ci && npm run lint"'
+        // Construction d'une image temporaire pour le Linting
+        sh '''
+        docker build -t frontend-lint ./frontend
+        docker run --rm frontend-lint sh -c "npm install && npm run lint"
+        '''
       }
     }
 
