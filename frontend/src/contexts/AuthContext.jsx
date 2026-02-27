@@ -1,7 +1,6 @@
-import { createContext, useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { authAPI } from '../api/client';
-
-export const AuthContext = createContext(null);
+import { AuthContext } from './AuthContextContext';
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
@@ -12,7 +11,13 @@ export function AuthProvider({ children }) {
       return null;
     }
   });
-  const [loading, setLoading] = useState(true);
+
+  // Initialisation intelligente : si pas de token, on n'est pas en train de charger
+  const [loading, setLoading] = useState(() => {
+    const token = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
+    return !!(token && !storedUser); 
+  });
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -29,10 +34,9 @@ export function AuthProvider({ children }) {
           setUser(null);
         })
         .finally(() => setLoading(false));
-    } else {
-      setLoading(false);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    // Suppression du "else { setLoading(false) }" qui provoquait l'erreur
+  }, [user]); 
 
   const login = useCallback(async (email, mot_de_passe) => {
     const res = await authAPI.login({ email, mot_de_passe });

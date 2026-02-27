@@ -7,32 +7,44 @@ import { universitesAPI, documentsAPI, matieresAPI } from '../api/client';
 export default function HomePage() {
   const { user } = useAuth();
   const [universite, setUniversite] = useState(null);
-  const [filiere, setFiliere] = useState(null);
   const [plusTelecharges, setPlusTelecharges] = useState([]);
   const [recents, setRecents] = useState([]);
   const [matieres, setMatieres] = useState([]);
   const [search, setSearch] = useState('');
 
+  // CORRECTION : On dérive la filière directement de l'utilisateur au lieu d'utiliser un useEffect
+  const filiere = user ? { nom: user.filiere, niveau: user.niveau } : null;
+
   useEffect(() => {
     if (user) {
+      // Récupération des infos de l'université
       universitesAPI.getById(user.universite_id).then(res => setUniversite(res.data));
 
-      // Récupérer tous les documents et trier côté front
-      documentsAPI.getAll({ universite_id: user.universite_id, filiere: user.filiere, niveau: user.niveau })
-        .then(res => {
-          const docs = res.data || [];
-          // Plus téléchargés
-          const sortedByDownloads = [...docs].sort((a, b) => (b.telechargements || 0) - (a.telechargements || 0));
-          setPlusTelecharges(sortedByDownloads.slice(0, 5));
-          // Récents
-          const sortedByDate = [...docs].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-          setRecents(sortedByDate.slice(0, 5));
-        });
+      // Récupération des documents filtrés
+      documentsAPI.getAll({ 
+        universite_id: user.universite_id, 
+        filiere: user.filiere, 
+        niveau: user.niveau 
+      })
+      .then(res => {
+        const docs = res.data || [];
+        // Plus téléchargés
+        const sortedByDownloads = [...docs].sort((a, b) => (b.telechargements || 0) - (a.telechargements || 0));
+        setPlusTelecharges(sortedByDownloads.slice(0, 5));
+        // Récents
+        const sortedByDate = [...docs].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        setRecents(sortedByDate.slice(0, 5));
+      });
 
-      matieresAPI.getAll({ universite_id: user.universite_id, filiere: user.filiere, niveau: user.niveau })
-        .then(res => setMatieres(res.data || []));
+      // Récupération des matières
+      matieresAPI.getAll({ 
+        universite_id: user.universite_id, 
+        filiere: user.filiere, 
+        niveau: user.niveau 
+      })
+      .then(res => setMatieres(res.data || []));
     } else {
-      // Non connecté : juste les plus téléchargés
+      // Mode non connecté : juste les plus téléchargés globaux
       documentsAPI.getAll().then(res => {
         const docs = res.data || [];
         const sorted = [...docs].sort((a, b) => (b.telechargements || 0) - (a.telechargements || 0));
@@ -41,19 +53,10 @@ export default function HomePage() {
     }
   }, [user]);
 
-  useEffect(() => {
-    if (user) {
-      setFiliere({ nom: user.filiere, niveau: user.niveau });
-    } else {
-      setFiliere(null);
-    }
-  }, [user]);
-
-  // Version non connectée
+  // Version non connectée (Landing Page)
   if (!user) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-10 space-y-10">
-        {/* Hero */}
         <section className="text-center space-y-4">
           <h1 className="text-3xl sm:text-4xl font-extrabold text-blue-800">La bibliothèque numérique des étudiants</h1>
           <p className="text-gray-600">Trouvez anciens sujets, TD et cours de votre filière.</p>
@@ -62,7 +65,7 @@ export default function HomePage() {
             <Link to="/register" className="bg-amber-500 hover:bg-amber-400 text-gray-900 px-6 py-2 rounded-lg font-semibold">Créer un compte</Link>
           </div>
         </section>
-        {/* Documents populaires */}
+
         <section>
           <h2 className="text-lg font-semibold text-gray-800 mb-3">Les plus téléchargés</h2>
           <div className="space-y-3">
@@ -83,10 +86,9 @@ export default function HomePage() {
     );
   }
 
-  // Version connectée
+  // Version connectée (Dashboard)
   return (
     <div className="max-w-3xl mx-auto px-2 py-6 space-y-8">
-      {/* Header minimal */}
       <header className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <span className="font-bold text-2xl text-blue-800">UniDocs</span>
@@ -104,7 +106,6 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Message personnalisé */}
       <section>
         <h2 className="text-xl font-semibold text-gray-800 mb-1">
           Bonjour {user.prenom} 👋
@@ -116,7 +117,6 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* Barre de recherche */}
       <section>
         <form
           className="flex items-center gap-2 bg-white rounded-lg shadow px-3 py-2"
@@ -136,7 +136,6 @@ export default function HomePage() {
         </form>
       </section>
 
-      {/* Les plus téléchargés */}
       <section>
         <h3 className="text-lg font-semibold text-gray-800 mb-2">Les plus téléchargés</h3>
         <div className="space-y-3">
@@ -158,7 +157,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Récemment ajoutés */}
       <section>
         <h3 className="text-lg font-semibold text-gray-800 mb-2">Récemment ajoutés</h3>
         <div className="space-y-3">
@@ -177,7 +175,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Parcourir par matière */}
       <section>
         <h3 className="text-lg font-semibold text-gray-800 mb-2">Parcourir par matière</h3>
         <div className="flex flex-wrap gap-2">
