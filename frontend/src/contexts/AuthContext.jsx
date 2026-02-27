@@ -12,15 +12,17 @@ export function AuthProvider({ children }) {
     }
   });
 
-  // Initialisation intelligente : si pas de token, on n'est pas en train de charger
+  // CORRECTION : On détermine si on charge dès le départ
   const [loading, setLoading] = useState(() => {
     const token = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-    return !!(token && !storedUser); 
+    // On ne charge que si on a un token mais pas encore les données utilisateur
+    return !!(token && !localStorage.getItem('user'));
   });
 
   useEffect(() => {
     const token = localStorage.getItem('token');
+    
+    // Si on a un token et pas d'utilisateur, on lance l'appel API
     if (token && !user) {
       authAPI
         .me()
@@ -35,7 +37,8 @@ export function AuthProvider({ children }) {
         })
         .finally(() => setLoading(false));
     }
-    // Suppression du "else { setLoading(false) }" qui provoquait l'erreur
+    // Note : Le bloc "else { setLoading(false); }" a été supprimé ici
+    // car l'état loading est déjà correct par défaut grâce à l'initialisation ci-dessus.
   }, [user]); 
 
   const login = useCallback(async (email, mot_de_passe) => {
