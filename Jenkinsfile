@@ -56,13 +56,23 @@ pipeline {
 
     stage('Deploy to Kubernetes') {
       steps {
-        // Déploiement automatique sur le cluster local [cite: 33, 47]
-        // On monte le dossier k8s et la config kube du conteneur Jenkins
         sh '''
-        kubectl apply -f k8s/namespace.yaml
-        kubectl apply -f k8s/postgres/
-        kubectl apply -f k8s/backend/
-        kubectl apply -f k8s/frontend/
+        echo "📥 Téléchargement de kubectl..."
+        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        chmod +x ./kubectl
+
+        echo "🚀 Application des manifests K8s..."
+        # On utilise ./kubectl pour utiliser la version qu'on vient de télécharger
+        ./kubectl apply -f k8s/namespace.yaml
+        ./kubectl apply -f k8s/postgres/secret.yaml
+        ./kubectl apply -f k8s/backend/configmap.yaml
+        ./kubectl apply -f k8s/postgres/
+        ./kubectl apply -f k8s/backend/
+        ./kubectl apply -f k8s/frontend/
+
+        echo "🔄 Forcer le redémarrage pour utiliser les images 'latest'..."
+        ./kubectl rollout restart deployment backend -n unidocs
+        ./kubectl rollout restart deployment frontend -n unidocs
         '''
       }
     }
